@@ -19,6 +19,7 @@ import zeab.queue.QueueActor
 import zeab.queue.QueueMessages.{Add, GetNext}
 import zeab.webservice.http.PostTopicProduceRequestBody
 import zeab.webservice.ws.WebSocketMessages
+import zeab.webservice.ws.WebSocketMessages.Msg
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -27,6 +28,9 @@ import scala.util.{Failure, Success}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 import io.circe.syntax._
+//Circe
+import io.circe.generic.auto._
+import io.circe.parser.decode
 
 object Routes {
 
@@ -43,15 +47,50 @@ object Routes {
   //topic/consume
   //get the next message from a queue
 
+  def hookQueueToWs(router: ActorRef): Flow[Message, Message, NotUsed] = {
+
+    //Set up the incoming flow
+    val incomingMessages: Sink[Message, NotUsed] =
+      Flow[Message].map {
+        case TextMessage.Strict(text) =>
+          decode[Msg](text) match {
+            case Right(msg) => Add(msg.text)
+            case Left(ex) => println(ex.toString)
+          }
+        case _ => println("Unsupported Msg Type")
+      }.to(Sink.actorRef(router, Done))
+
+    //Set up the outgoing flow
+    val outgoingMessages: Source[Message, NotUsed] =
+      Source.actorRef[String](100, OverflowStrategy.dropTail)
+        .mapMaterializedValue { outActor =>
+          // give the user actor a way to send messages out
+          val uuid: String = UUID.randomUUID().toString
+          router ! (uuid, outActor)
+          outActor ! WebSocketMessages.Hello(uuid).asJson.noSpaces
+          NotUsed
+        }
+        .map { outMsg => TextMessage(outMsg) }
+
+    // then combine both to a flow
+    Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
+
+  }
+
   //Routes dealing with basic ingress checks
   def topicRoute(implicit actorSystem: ActorSystem, internalKeeper: ActorRef): Route = {
     pathPrefix("topic") {
       get {
-        path ("ws"){
-          complete(StatusCodes.Created, s"11111")
+        path("ws") {
+          parameters("name") { name =>
+            onComplete(actorSystem.actorSelection("user/" + name).resolveOne()) {
+              case Success(queue) => handleWebSocketMessages(hookQueueToWs(queue))
+              case Failure(exception) => complete(StatusCodes.InternalServerError, exception.toString)
+            }
+          }
         } ~
-        path ("info"){
-          parameters("name".?) {
+          path("info") {
+            parameters("name".?) {
               case Some(n) =>
                 onComplete(internalKeeper ? GetQueue(n)) {
                   case Success(info) => complete(StatusCodes.Accepted, info.toString)
@@ -63,8 +102,8 @@ object Routes {
                   case Failure(ex) => complete(StatusCodes.InternalServerError, ex.toString)
                 }
 
+            }
           }
-        }
       }
     } ~
       pathPrefix("topic") {
