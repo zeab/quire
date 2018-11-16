@@ -10,7 +10,7 @@ import zeab.webservice.Routes
 
 import scala.concurrent.ExecutionContext
 
-object QuireAgent {
+object QuireAgent extends QuireAgentLogging{
 
   def main(args: Array[String]): Unit = {
 
@@ -20,7 +20,7 @@ object QuireAgent {
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
     //Start the Web Service
-    actorSystem.actorOf(Props(classOf[WebServiceActor], actorMaterializer)) ! StartService(Routes.allRoutes)
+    actorSystem.actorOf(Props(classOf[WebServiceActor], actorMaterializer), "QuireAgentWebService") ! StartService(Routes.allRoutes)
 
   }
 

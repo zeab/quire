@@ -1,14 +1,19 @@
 package zeab.queue
 
 //Imports
-import akka.actor.{Actor, ActorRef}
 import zeab.queue.QueueMessages.{Add, GetNext}
 import zeab.webservice.ws.WebSocketMessages.Msg
+//Akka
+import akka.actor.{Actor, ActorRef}
+import akka.event.{Logging, LoggingAdapter}
 //Circe
 import io.circe.generic.auto._
 import io.circe.parser.decode
 
 class QueueActor(maxQueueSize:Int) extends Actor{
+
+  //Actor Settings
+  val actorLog: LoggingAdapter = Logging(context.system, this)
 
   //Receive
   def receive: Receive = queue()
@@ -48,6 +53,17 @@ class QueueActor(maxQueueSize:Int) extends Actor{
       }
       sender ! next
       context.become(queue(q.drop(1), consumers))
+  }
+
+  //Lifecycle Hooks
+  /** Log Name on Start */
+  override def preStart: Unit = {
+    actorLog.debug(s"Starting ${this.getClass.getName}")
+  }
+
+  /** Log Name on Stop */
+  override def postStop: Unit = {
+    actorLog.debug(s"Stopping ${this.getClass.getName}")
   }
 
 }

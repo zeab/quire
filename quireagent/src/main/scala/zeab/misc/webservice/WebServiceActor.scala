@@ -15,7 +15,7 @@ import scala.concurrent.ExecutionContext
 class WebServiceActor(implicit val actorMaterializer: ActorMaterializer) extends Actor {
 
   //Actor Settings
-  val log: LoggingAdapter = Logging(context.system, this)
+  val actorLog: LoggingAdapter = Logging(context.system, this)
   implicit val actorSystem: ActorSystem = context.system
   implicit val ec: ExecutionContext = context.dispatcher
 
@@ -24,41 +24,41 @@ class WebServiceActor(implicit val actorMaterializer: ActorMaterializer) extends
 
   //Behaviors
   def disconnected: Receive = {
-    case StopService => log.warning(s"Web Server ${self.path.name} is already disconnected")
+    case StopService => actorLog.warning(s"Web Server ${self.path.name} is already disconnected")
     case message: StartService =>
-      log.info(s"Web Server ${self.path.name} starting binding attempt")
+      actorLog.info(s"Web Server ${self.path.name} starting binding attempt")
       context.become(connecting)
       Http().bindAndHandle(message.routes, message.host, message.port.toInt).pipeTo(self)
   }
 
   def connected(webServer: Http.ServerBinding): Receive = {
     case StopService =>
-      log.info(s"Web Server ${self.path.name} offline ${webServer.localAddress}")
+      actorLog.info(s"Web Server ${self.path.name} offline ${webServer.localAddress}")
       webServer.unbind()
       context.become(disconnected)
-    case _: StartService => log.warning(s"Web Server ${self.path.name} already connected")
+    case _: StartService => actorLog.warning(s"Web Server ${self.path.name} already connected")
   }
 
   def connecting: Receive = {
     case StopService =>
-      log.warning(s"Web Server ${self.path.name} is disconnecting while connecting")
+      actorLog.warning(s"Web Server ${self.path.name} is disconnecting while connecting")
       context.become(disconnected)
       self ! StopService
     case message: Http.ServerBinding =>
       context.become(connected(message))
-      log.info(s"Web Server ${self.path.name} online ${message.localAddress}")
-    case _: StartService => log.warning(s"Web Server ${self.path.name} is already attempting to establish binding")
+      actorLog.info(s"Web Server ${self.path.name} online ${message.localAddress}")
+    case _: StartService => actorLog.warning(s"Web Server ${self.path.name} is already attempting to establish binding")
   }
 
   //Lifecycle Hooks
   /** Log Name on Start */
   override def preStart: Unit = {
-    log.debug(s"Starting ${this.getClass.getName}")
+    actorLog.debug(s"Starting ${this.getClass.getName}")
   }
 
   /** Log Name on Stop */
   override def postStop: Unit = {
-    log.debug(s"Stopping ${this.getClass.getName}")
+    actorLog.debug(s"Stopping ${this.getClass.getName}")
   }
 
 }
