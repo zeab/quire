@@ -45,8 +45,10 @@ class QueueActor(maxQueueSize:Int) extends Actor{
         case Left(ex) => //Something happened during decoding so dont do anything to the queue
       }
     case m: Add =>
+      actorLog.debug(s"Adding - size of queue ${q.size}")
       context.become(queue(q ++ List(m.message)))
     case GetNext =>
+      actorLog.debug(s"GetNext - size of queue ${q.size}")
       val next: String = q.headOption match {
         case Some(n) => n
         case None => "nothing to give"
