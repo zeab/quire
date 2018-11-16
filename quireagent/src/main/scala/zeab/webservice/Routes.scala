@@ -1,26 +1,27 @@
 package zeab.webservice
 
+//Imports
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import akka.pattern.ask
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
+import akka.pattern.ask
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import akka.{Done, NotUsed}
+import zeab.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues}
 import zeab.queue.QueueActor
 import zeab.queue.QueueMessages.{Add, GetNext}
 import zeab.webservice.http.PostTopicProduceRequestBody
 import zeab.webservice.ws.WebSocketMessages
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.{FiniteDuration, _}
 import scala.util.{Failure, Success}
 //Circe and Akka-Http plugin
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -32,27 +33,50 @@ object Routes {
   implicit val timeout: Timeout = Timeout(FiniteDuration(1, TimeUnit.SECONDS))
 
   //Collection of all the routes together in 1 big route
-  def allRoutes(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, executionContext:ExecutionContext): Route =
+  def allRoutes(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, executionContext: ExecutionContext, internalKeeper: ActorRef): Route =
     topicRoute ~ produceRoute ~ consumeRoute
 
   //topic
-    //this creates, edit, list(details) and delete topics
+  //this creates, edit, list(details) and delete topics
   //topic/produce
-    //add a message to a queue
+  //add a message to a queue
   //topic/consume
-    //get the next message from a queue
+  //get the next message from a queue
 
   //Routes dealing with basic ingress checks
-  def topicRoute(implicit actorSystem: ActorSystem): Route = {
+  def topicRoute(implicit actorSystem: ActorSystem, internalKeeper: ActorRef): Route = {
     pathPrefix("topic") {
-      post {
-        parameters("name") { name =>
-          val masterQueueName: String = s"$name-MasterQueue-${UUID.randomUUID}"
-          actorSystem.actorOf(Props(classOf[QueueActor], 100), masterQueueName)
-          complete(StatusCodes.Created, s"Created $masterQueueName")
+      get {
+        path ("ws"){
+          complete(StatusCodes.Created, s"11111")
+        } ~
+        path ("info"){
+          parameters("name".?) {
+              case Some(n) =>
+                onComplete(internalKeeper ? GetQueue(n)) {
+                  case Success(info) => complete(StatusCodes.Accepted, info.toString)
+                  case Failure(ex) => complete(StatusCodes.InternalServerError, ex.toString)
+                }
+              case None =>
+                onComplete(internalKeeper ? GetQueues) {
+                  case Success(info) => complete(StatusCodes.Accepted, info.toString)
+                  case Failure(ex) => complete(StatusCodes.InternalServerError, ex.toString)
+                }
+
+          }
         }
       }
-    }
+    } ~
+      pathPrefix("topic") {
+        post {
+          parameters("name") { name =>
+            val masterQueueName: String = s"$name-MasterQueue-${UUID.randomUUID}"
+            val queue: ActorRef = actorSystem.actorOf(Props(classOf[QueueActor], 100), masterQueueName)
+            internalKeeper ! AddQueue(masterQueueName, queue)
+            complete(StatusCodes.Created, s"Created $masterQueueName")
+          }
+        }
+      }
   }
 
   def produceRoute(implicit actorSystem: ActorSystem): Route = {
@@ -75,7 +99,7 @@ object Routes {
   }
 
   def consumeRoute(implicit actorSystem: ActorSystem, executionContext: ExecutionContext): Route = {
-    implicit val timeout:Timeout = Timeout(5.second)
+    implicit val timeout: Timeout = Timeout(5.second)
     pathPrefix("consume") {
       get {
         parameters("name") { name =>
@@ -91,6 +115,7 @@ object Routes {
       }
     }
   }
+
 
   //Routes dealing with basic ingress checks
   def topicRoute1(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): Route = {
@@ -111,10 +136,10 @@ object Routes {
           }
         }
       } ~
-      get {
-        //Used to query all the known queues running in this quire
-        complete(StatusCodes.InternalServerError, "asdasd")
-      } ~
+        get {
+          //Used to query all the known queues running in this quire
+          complete(StatusCodes.InternalServerError, "asdasd")
+        } ~
         post {
           parameters("name") { name =>
             val masterQueueName: String = s"$name-MasterQueue-${UUID.randomUUID}"
@@ -135,9 +160,9 @@ object Routes {
   def topicRoute2(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): Route = {
     pathPrefix("topic") {
       get {
-        onComplete(actorSystem.actorSelection("user/" + "MasterQueue").resolveOne()){
+        onComplete(actorSystem.actorSelection("user/" + "MasterQueue").resolveOne()) {
           case Success(queue) => // logic with the actorRef
-            def hookQueueToWs(router:ActorRef): Flow[Message, Message, NotUsed] = {
+            def hookQueueToWs(router: ActorRef): Flow[Message, Message, NotUsed] = {
 
               //Set up the incoming flow
               val incomingMessages: Sink[Message, NotUsed] =
@@ -156,7 +181,7 @@ object Routes {
                     outActor ! WebSocketMessages.Hello(uuid).asJson.noSpaces
                     NotUsed
                   }
-                  .map{outMsg => TextMessage(outMsg)}
+                  .map { outMsg => TextMessage(outMsg) }
 
               // then combine both to a flow
               Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
