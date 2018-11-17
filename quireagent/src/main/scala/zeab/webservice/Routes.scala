@@ -4,7 +4,7 @@ package zeab.webservice
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
@@ -20,6 +20,7 @@ import zeab.queue.QueueMessages.{Add, GetNext}
 import zeab.webservice.http.PostTopicProduceRequestBody
 import zeab.webservice.ws.WebSocketMessages
 import zeab.webservice.ws.WebSocketMessages.Msg
+import zeab.websocketinterface.WebSocketInterfaceActor
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -47,27 +48,27 @@ object Routes {
   //topic/consume
   //get the next message from a queue
 
-  def hookQueueToWs(router: ActorRef): Flow[Message, Message, NotUsed] = {
+  def hookQueueToWs(webSocketInterface:ActorRef, queue: ActorRef): Flow[Message, Message, NotUsed] = {
 
     //Set up the incoming flow
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message].map {
         case TextMessage.Strict(text) =>
           decode[Msg](text) match {
-            case Right(msg) => Add(msg.text)
-            case Left(ex) => println(ex.toString)
+            case Right(msg) => msg
+            case Left(ex) => ex.toString
           }
-        case _ => println("Unsupported Msg Type")
-      }.to(Sink.actorRef(router, Done))
+        case _ => "Unsupported Msg Type"
+      }.to(Sink.actorRef(webSocketInterface, PoisonPill))
 
     //Set up the outgoing flow
     val outgoingMessages: Source[Message, NotUsed] =
       Source.actorRef[String](100, OverflowStrategy.dropTail)
         .mapMaterializedValue { outActor =>
           // give the user actor a way to send messages out
-          val uuid: String = UUID.randomUUID().toString
-          router ! (uuid, outActor)
-          outActor ! WebSocketMessages.Hello(uuid).asJson.noSpaces
+          val senderId: String = UUID.randomUUID().toString
+          webSocketInterface ! (senderId, outActor, queue)
+          outActor ! WebSocketMessages.Hello(senderId).asJson.noSpaces
           NotUsed
         }
         .map { outMsg => TextMessage(outMsg) }
@@ -84,7 +85,9 @@ object Routes {
         path("ws") {
           parameters("name") { name =>
             onComplete(actorSystem.actorSelection("user/" + name).resolveOne()) {
-              case Success(queue) => handleWebSocketMessages(hookQueueToWs(queue))
+              case Success(queue) =>
+                val webSocketInterface: ActorRef = actorSystem.actorOf(Props[WebSocketInterfaceActor])
+                handleWebSocketMessages(hookQueueToWs(webSocketInterface, queue))
               case Failure(exception) => complete(StatusCodes.InternalServerError, exception.toString)
             }
           }
@@ -154,96 +157,5 @@ object Routes {
       }
     }
   }
-
-
-  //Routes dealing with basic ingress checks
-  def topicRoute1(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): Route = {
-    pathPrefix("topic") {
-      pathPrefix("produce") {
-        post {
-          parameters("name") { name =>
-            decodeRequest {
-              entity(as[PostTopicProduceRequestBody]) { msg =>
-                onComplete(actorSystem.actorSelection("user/" + name).resolveOne()) {
-                  case Success(queue) =>
-                    queue ! msg
-                    complete(StatusCodes.Accepted, "message queued")
-                  case Failure(ex) => complete(StatusCodes.InternalServerError, ex.toString)
-                }
-              }
-            }
-          }
-        }
-      } ~
-        get {
-          //Used to query all the known queues running in this quire
-          complete(StatusCodes.InternalServerError, "asdasd")
-        } ~
-        post {
-          parameters("name") { name =>
-            val masterQueueName: String = s"$name-MasterQueue-${UUID.randomUUID}"
-            actorSystem.actorOf(Props(classOf[QueueActor], 100), masterQueueName)
-            complete(StatusCodes.Created, s"Created $masterQueueName")
-          }
-        } ~
-        put {
-          complete(StatusCodes.Accepted, s"Get topic")
-        } ~
-        delete {
-          complete(StatusCodes.Accepted, s"Get topic")
-        }
-    }
-  }
-
-  //Routes dealing with basic ingress checks
-  def topicRoute2(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer): Route = {
-    pathPrefix("topic") {
-      get {
-        onComplete(actorSystem.actorSelection("user/" + "MasterQueue").resolveOne()) {
-          case Success(queue) => // logic with the actorRef
-            def hookQueueToWs(router: ActorRef): Flow[Message, Message, NotUsed] = {
-
-              //Set up the incoming flow
-              val incomingMessages: Sink[Message, NotUsed] =
-                Flow[Message].map {
-                  case TextMessage.Strict(text) => text
-                  case _ => "Unsupported Msg Type"
-                }.to(Sink.actorRef(router, Done))
-
-              //Set up the outgoing flow
-              val outgoingMessages: Source[Message, NotUsed] =
-                Source.actorRef[String](100, OverflowStrategy.dropTail)
-                  .mapMaterializedValue { outActor =>
-                    // give the user actor a way to send messages out
-                    val uuid: String = UUID.randomUUID().toString
-                    router ! (uuid, outActor)
-                    outActor ! WebSocketMessages.Hello(uuid).asJson.noSpaces
-                    NotUsed
-                  }
-                  .map { outMsg => TextMessage(outMsg) }
-
-              // then combine both to a flow
-              Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
-
-            }
-
-            handleWebSocketMessages(hookQueueToWs(queue))
-
-          case Failure(ex) =>
-            complete(StatusCodes.InternalServerError, ex.toString)
-        }
-      } ~
-        post {
-          actorSystem.actorOf(Props(classOf[QueueActor], 100), "MasterQueue")
-          complete(StatusCodes.Accepted, s"Post topic")
-        } ~
-        put {
-          complete(StatusCodes.Accepted, s"Get topic")
-        } ~
-        delete {
-          complete(StatusCodes.Accepted, s"Get topic")
-        }
-    }
-  }
-
+  
 }

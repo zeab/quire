@@ -20,30 +20,6 @@ class QueueActor(maxQueueSize:Int) extends Actor{
 
   //Behaviors
   def queue(q:List[String] = List.empty, consumers: Map[String, ActorRef] = Map.empty): Receive = {
-    case (uuid: String, actor: ActorRef) =>
-      context.become(queue(q, consumers ++ Map(uuid -> actor)))
-    case m : String =>
-      decode[Msg](m) match {
-        case Right(msg) =>
-          msg.uuid match {
-            case Some(id) =>
-              val next: String = q.headOption match {
-                case Some(n) => n
-                case None => "nothing to give"
-              }
-              consumers.find(_._1==id) match {
-                case Some(x) =>
-                  val (_, actor) = x
-                  actor ! next
-                  context.become(queue(q.drop(1), consumers))
-                case None => //do nothing
-              }
-            case None =>
-              //If I dont have an id then we assume this is a producer and ... no
-              context.become(queue(q ++ List(msg.text), consumers))
-          }
-        case Left(ex) => //Something happened during decoding so dont do anything to the queue
-      }
     case m: Add =>
       actorLog.debug(s"Adding - size of queue ${q.size}")
       context.become(queue(q ++ List(m.message)))
