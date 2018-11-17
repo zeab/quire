@@ -3,7 +3,7 @@ package zeab.websocketinterface
 //Imports
 import akka.actor.{Actor, ActorRef}
 import akka.event.{Logging, LoggingAdapter}
-import zeab.queue.QueueMessages.{Add, GetNext}
+import zeab.queue.QueueMessages.{Add, GetNext, Next}
 import zeab.webservice.ws.WebSocketMessages.Msg
 
 class WebSocketInterfaceActor extends Actor{
@@ -14,6 +14,7 @@ class WebSocketInterfaceActor extends Actor{
   //Receive
   def receive: Receive = inactive
 
+  //Behaviors
   def inactive: Receive = {
     case (senderId: String, webSocketOut: ActorRef, queue:ActorRef) => context.become(active(senderId, webSocketOut, queue))
   }
@@ -28,20 +29,8 @@ class WebSocketInterfaceActor extends Actor{
         case "c" =>
           queue ! GetNext
       }
-  }
-
-  //Behaviors
-  def keeper(senderId: String = "", actor: Option[ActorRef] = None, queue: Option[ActorRef] = None): Receive = {
-    case (senderId: String, actor: ActorRef, queue:ActorRef) =>
-      context.become(keeper(senderId, Some(actor), Some(queue)))
-    case m: String =>
-      println(m)
-    case m: Msg =>
-      m.`type`.toLowerCase match {
-        case "p" =>
-
-        case "c" =>
-      }
+    case m: Next =>
+      webSocketOut ! m.msg
   }
 
   //Lifecycle Hooks

@@ -1,8 +1,7 @@
 package zeab.queue
 
 //Imports
-import zeab.queue.QueueMessages.{Add, GetNext}
-import zeab.webservice.ws.WebSocketMessages.Msg
+import zeab.queue.QueueMessages.{Add, GetNext, Next}
 //Akka
 import akka.actor.{Actor, ActorRef}
 import akka.event.{Logging, LoggingAdapter}
@@ -21,15 +20,15 @@ class QueueActor(maxQueueSize:Int) extends Actor{
   //Behaviors
   def queue(q:List[String] = List.empty, consumers: Map[String, ActorRef] = Map.empty): Receive = {
     case m: Add =>
-      actorLog.debug(s"Adding - size of queue ${q.size}")
+      actorLog.debug(s"Adding - size of queue ${q.size + 1}")
       context.become(queue(q ++ List(m.message)))
-    case GetNext =>
+    case m: GetNext =>
       actorLog.debug(s"GetNext - size of queue ${q.size}")
       val next: String = q.headOption match {
         case Some(n) => n
         case None => "nothing to give"
       }
-      sender ! next
+      sender ! Next(next, m.senderId)
       context.become(queue(q.drop(1), consumers))
   }
 

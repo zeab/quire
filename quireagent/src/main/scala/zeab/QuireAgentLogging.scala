@@ -14,7 +14,7 @@ trait QuireAgentLogging extends EnvGrok {
   val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
   val rootLogger = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
-  val rootLogLevel: Level = getEnvGrok("ROOT_LOG_LEVEL", "INFO").toUpperCase match {
+  val rootLogLevel: Level = getEnvGrok("ROOT_LOG_LEVEL", "DEBUG").toUpperCase match {
     case "ERROR" => Level.ERROR
     case "WARN" | "WARNING" => Level.WARN
     case "INFO" => Level.INFO
@@ -24,7 +24,7 @@ trait QuireAgentLogging extends EnvGrok {
   rootLogger.setLevel(rootLogLevel)
 
   val akkaLogger = loggerContext.getLogger("akka")
-  val akkaLogLevel: Level = getEnvGrok("AKKA_LOG_LEVEL", "INFO").toUpperCase match {
+  val akkaLogLevel: Level = getEnvGrok("AKKA_LOG_LEVEL", "DEBUG").toUpperCase match {
     case "ERROR" => Level.ERROR
     case "WARN" | "WARNING" => Level.WARN
     case "INFO" => Level.INFO

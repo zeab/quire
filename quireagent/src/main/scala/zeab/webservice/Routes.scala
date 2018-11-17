@@ -16,7 +16,7 @@ import akka.util.Timeout
 import akka.{Done, NotUsed}
 import zeab.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues}
 import zeab.queue.QueueActor
-import zeab.queue.QueueMessages.{Add, GetNext}
+import zeab.queue.QueueMessages.{Add, GetNext, Next}
 import zeab.webservice.http.PostTopicProduceRequestBody
 import zeab.webservice.ws.WebSocketMessages
 import zeab.webservice.ws.WebSocketMessages.Msg
@@ -147,15 +147,15 @@ object Routes {
         parameters("name") { name =>
           val getNext = for {
             actor <- actorSystem.actorSelection("user/" + name).resolveOne()
-            msg <- (actor ? GetNext).mapTo[String]
+            msg <- (actor ? GetNext).mapTo[Next]
           } yield msg
           onComplete(getNext) {
-            case Success(next) => complete(StatusCodes.OK, next)
+            case Success(next) => complete(StatusCodes.OK, next.msg)
             case Failure(ex) => complete(StatusCodes.InternalServerError, ex.toString)
           }
         }
       }
     }
   }
-  
+
 }

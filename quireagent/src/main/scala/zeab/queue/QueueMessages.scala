@@ -4,6 +4,8 @@ object QueueMessages {
 
   case class Add(message:String)
 
-  case object GetNext
+  case class GetNext(senderId: String = "")
+
+  case class Next(msg: String, senderId: String = "")
 
 }
