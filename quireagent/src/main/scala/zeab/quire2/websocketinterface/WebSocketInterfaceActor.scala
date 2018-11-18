@@ -1,10 +1,10 @@
-package zeab.websocketinterface
+package zeab.quire2.websocketinterface
 
 //Imports
 import akka.actor.{Actor, ActorRef}
 import akka.event.{Logging, LoggingAdapter}
-import zeab.queue.QueueMessages.{Add, GetNext, Next}
-import zeab.webservice.ws.WebSocketMessages.Msg
+import zeab.quire2.queue.QueueMessages.{Add, GetNext, Next}
+import zeab.quire2.webservice.ws.WebSocketMessages.Msg
 
 class WebSocketInterfaceActor extends Actor{
 

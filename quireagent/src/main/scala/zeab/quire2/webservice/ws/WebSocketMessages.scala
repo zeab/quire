@@ -1,4 +1,4 @@
-package zeab.webservice.ws
+package zeab.quire2.webservice.ws
 
 object WebSocketMessages {
 

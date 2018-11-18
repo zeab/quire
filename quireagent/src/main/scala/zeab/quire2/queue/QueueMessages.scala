@@ -1,4 +1,4 @@
-package zeab.queue
+package zeab.quire2.queue
 
 object QueueMessages {
 

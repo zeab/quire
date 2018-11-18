@@ -1,11 +1,8 @@
-package zeab
+package zeab.quire2
 
-//Imports
-import zeab.misc.EnvGrok
-//Logback
 import ch.qos.logback.classic.{Level, LoggerContext}
-//Slf4j
 import org.slf4j.{Logger, LoggerFactory}
+import zeab.misc.EnvGrok
 
 trait QuireAgentLogging extends EnvGrok {
 

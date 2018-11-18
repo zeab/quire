@@ -1,4 +1,4 @@
-package zeab.webservice
+package zeab.quire2.webservice
 
 //Imports
 import java.util.UUID
@@ -14,13 +14,13 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.util.Timeout
 import akka.{Done, NotUsed}
-import zeab.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues}
-import zeab.queue.QueueActor
-import zeab.queue.QueueMessages.{Add, GetNext, Next}
-import zeab.webservice.http.PostTopicProduceRequestBody
-import zeab.webservice.ws.WebSocketMessages
-import zeab.webservice.ws.WebSocketMessages.Msg
-import zeab.websocketinterface.WebSocketInterfaceActor
+import zeab.quire2.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues}
+import zeab.quire2.queue.QueueActor
+import zeab.quire2.queue.QueueMessages.{Add, GetNext, Next}
+import zeab.quire2.webservice.http.PostTopicProduceRequestBody
+import zeab.quire2.webservice.ws.WebSocketMessages
+import zeab.quire2.webservice.ws.WebSocketMessages.Msg
+import zeab.quire2.websocketinterface.WebSocketInterfaceActor
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{FiniteDuration, _}

@@ -1,13 +1,11 @@
-package zeab
+package zeab.quire2
 
-//Imports
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
-import zeab.internalkeeper.InternalKeeperActor
 import zeab.misc.AkkaConfigBuilder
 import zeab.misc.webservice.WebServiceActor
 import zeab.misc.webservice.WebServiceMessages.StartService
-import zeab.webservice.Routes
+import zeab.quire.webservice.Routes
 
 import scala.concurrent.ExecutionContext
 
@@ -20,11 +18,8 @@ object QuireAgent extends QuireAgentLogging{
     implicit val actorMaterializer: ActorMaterializer = ActorMaterializer()
     implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
-    //Internal Keeper
-    implicit val internalKeeper: ActorRef = actorSystem.actorOf(Props[InternalKeeperActor])
-
     //Start the Web Service
-    actorSystem.actorOf(Props(classOf[WebServiceActor], actorMaterializer), "QuireAgentWebService") ! StartService(Routes.allRoutes)
+    actorSystem.actorOf(Props(classOf[WebServiceActor], actorMaterializer), "QuireWebService") ! StartService(Routes.allRoutes)
 
   }
 

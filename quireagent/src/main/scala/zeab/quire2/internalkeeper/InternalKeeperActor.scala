@@ -1,7 +1,7 @@
-package zeab.internalkeeper
+package zeab.quire2.internalkeeper
 
 //Imports
-import zeab.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues, RemoveQueue}
+import zeab.quire2.internalkeeper.InternalKeeperMessages.{AddQueue, GetQueue, GetQueues, RemoveQueue}
 //Akka
 import akka.actor.{Actor, ActorRef}
 import akka.event.{Logging, LoggingAdapter}

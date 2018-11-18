@@ -1,4 +1,4 @@
-package zeab.internalkeeper
+package zeab.quire2.internalkeeper
 
 //Imports
 import akka.actor.ActorRef
