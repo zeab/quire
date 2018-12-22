@@ -7,14 +7,12 @@ import sbt.Keys._
 
 object Common {
 
-  //Manually update Version and Major numbers but auto update Minor number
+  //Common Settings
+  val useScalaVersion: String = "2.12.6"
+  val useOrganization: String = "zeab"
+
+  //Get the current build time since epoch
   val buildTime: String = Instant.now.getEpochSecond.toString
-
-  //Versions
-  val quireAgentVersion: String = s"1.0.$buildTime"
-
-  //Settings
-  val quireAgentSettings: Seq[Def.Setting[_]] = seqBaseProjectTemplate(quireAgentVersion)
 
   //Add this to a module to disable publishing
   val disablePublishing: Seq[Def.Setting[_]] = Seq(
@@ -31,8 +29,8 @@ object Common {
   def seqBaseProjectTemplate(versionNumber: String): Seq[Def.Setting[_]] = {
     Seq(
       version := versionNumber,
-      scalaVersion := "2.12.7",
-      organization := "zeab"
+      scalaVersion := useScalaVersion,
+      organization := useOrganization
     )
   }
 
@@ -43,5 +41,17 @@ object Common {
       "org.label-schema.build-date" -> buildTime
     )
   }
+
+  //Some assembly setting that have not been put into this application correctly
+//  // No need to run tests while building jar
+//  test in assembly := {}
+//  // Simple and constant jar name
+//  assemblyJarName in assembly := s"app-assembly.jar"
+//  // Merge strategy for assembling conflicts
+//  assemblyMergeStrategy in assembly := {
+//    case PathList("reference.conf") => MergeStrategy.concat
+//    case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+//    case _ => MergeStrategy.first
+//  }
 
 }

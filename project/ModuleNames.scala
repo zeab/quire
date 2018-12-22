@@ -1,6 +1,6 @@
 
 object ModuleNames {
 
-  val quireAgentKey: String = "quireagent"
+  val rootKey: String = "quireagent"
 
 }

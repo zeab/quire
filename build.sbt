@@ -1,17 +1,19 @@
 
 //Imports
-import Common._
+import Settings._
+import Dependencies._
 import Docker._
 import ModuleNames._
-import Dependencies._
+import Resolvers._
 
 //Add all the command alias's
 CommandAlias.allCommandAlias
 
-lazy val quireagent = (project in file(quireAgentKey))
-  .settings(quireAgentSettings: _*)
-  .settings(libraryDependencies ++= quireDependencies)
+lazy val quireagent = (project in file("."))
+  .settings(rootSettings: _*)
+  .settings(libraryDependencies ++= rootDependencies)
   .enablePlugins(Artifactory)
-  .settings(quireAgentDockerSettings)
+  .settings(allResolvers: _*)
+  .settings(rootDockerSettings)
   .enablePlugins(AshScriptPlugin)
   .enablePlugins(AssemblyPlugin)

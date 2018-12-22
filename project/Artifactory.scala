@@ -5,7 +5,6 @@ import sbt._
 object Artifactory extends AutoPlugin {
 
   val credsFile: String = "zeab.credentials"
-  val res: String = "http://192.168.1.144:8081/artifactory/ivy-dev-local/"
   val pubTo: String = "http://192.168.1.144:8081/artifactory/ivy-dev-local"
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = getArtifactoryCredentials
@@ -28,20 +27,17 @@ object Artifactory extends AutoPlugin {
       case ((Some(realm), Some(host), Some(user), Some(password)), (_, _, _, _)) =>
         Seq(
           credentials += Credentials(realm, host, user, password),
-          resolvers += "Artifactory" at res,
           publishTo := Some(realm at host)
         )
       case ((_, _, _, _), (Some(realm), Some(host), Some(user), Some(password))) =>
         Seq(
           credentials += Credentials(realm, host, user, password),
-          resolvers += "Artifactory" at res,
           publishTo := Some(realm at host)
         )
       case _ =>
         if (artifactoryCredentialsFile.exists()) {
           Seq(
             credentials += Credentials(artifactoryCredentialsFile),
-            resolvers += "Artifactory" at res,
             publishTo := Some("Artifactory Realm" at pubTo)
           )
         }
@@ -53,3 +49,5 @@ object Artifactory extends AutoPlugin {
   }
 
 }
+
+

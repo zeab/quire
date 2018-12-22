@@ -9,14 +9,10 @@ object CommandAlias {
   val allPublishAlias: Seq[Def.Setting[_]] = Seq.empty
 
   //List all Docker Alias here
-  val allDockerAlias: Seq[Def.Setting[_]] =
-    dockerCommands("q", quireAgentKey) ++
-      dockerCommands(quireAgentKey)
+  val allDockerAlias: Seq[Def.Setting[_]] = Seq.empty
 
   //List all Assembly Alias here
-  val allAssemblyAlias: Seq[Def.Setting[_]] =
-    assemblyCommands("q", quireAgentKey) ++
-      assemblyCommands(quireAgentKey)
+  val allAssemblyAlias: Seq[Def.Setting[_]] = Seq.empty
 
   //Group all the commands for use in build.sbt
   val allCommandAlias: Seq[Def.Setting[_]] =
@@ -26,7 +22,9 @@ object CommandAlias {
   def dockerCommands(key:String, modules:String*): Seq[Def.Setting[_]] = {
     val publishLocal = "docker:publishLocal"
     val publish = "docker:publish"
-    addCommandAlias(s"dpl-$key", if (modules.isEmpty) s";$key/$publishLocal" else modules.map(module => s";$module/$publishLocal").mkString) ++
+    addCommandAlias(s"dpl", s"$publishLocal") ++
+      addCommandAlias(s"dp", s"$publish") ++
+      addCommandAlias(s"dpl-$key", if (modules.isEmpty) s";$key/$publishLocal" else modules.map(module => s";$module/$publishLocal").mkString) ++
       addCommandAlias(s"dp-$key", if (modules.isEmpty) s";$key/$publish" else modules.map(module => s";$module/$publish").mkString)
   }
 
@@ -34,7 +32,9 @@ object CommandAlias {
   def publishCommands(key:String, modules:String*): Seq[Def.Setting[_]] = {
     val publishLocal = "publishLocal"
     val publish = "publish"
-    addCommandAlias(s"pl-$key", if (modules.isEmpty) s";clean;$key/$publishLocal" else modules.map(module => s";$module/$publishLocal").mkString) ++
+    addCommandAlias(s"pl", s"$publishLocal") ++
+      addCommandAlias(s"p", s"$publishLocal") ++
+      addCommandAlias(s"pl-$key", if (modules.isEmpty) s";clean;$key/$publishLocal" else modules.map(module => s";$module/$publishLocal").mkString) ++
       addCommandAlias(s"p-$key", if (modules.isEmpty) s";$key/$publish" else modules.map(module => s";$module/$publish").mkString)
   }
 
