@@ -23,7 +23,7 @@ object Routes {
   implicit val timeout: Timeout = Timeout(5.second)
 
   //Collection of all the routes together in 1 big route
-  def allRoutes(implicit actorSystem: ActorSystem, actorMaterializer: ActorMaterializer, executionContext: ExecutionContext, quireConductor: ActorRef): Route =
+  def allRoutes(implicit actorSystem: ActorSystem, quireConductor: ActorRef): Route =
     topicRoute ~ produceRoute ~ consumeRoute
 
   def topicRoute(implicit actorSystem: ActorSystem, quireConductor: ActorRef): Route = {
